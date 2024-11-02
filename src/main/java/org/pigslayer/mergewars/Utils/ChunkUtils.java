@@ -5,19 +5,13 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.util.Vector;
+import org.pigslayer.mergewars.GameFlow.ChunkManager;
 
 import java.util.ArrayList;
 import java.util.List;
+import static org.pigslayer.mergewars.GameFlow.ChunkManager.*;
 
 public class ChunkUtils {
-
-    public static short toChunkPosition(Location loc){
-        int x = loc.getBlockX() & 0XF;
-        int y = loc.getBlockY() & 0XFF;
-        int z = loc.getBlockZ() & 0XF;
-
-        return (short) (x << 16 | z << 8 | y);
-    }
 
     public static Integer getHighestLocation(Chunk chunk){
 
@@ -37,24 +31,24 @@ public class ChunkUtils {
         return highest;
     }
 
-    public static Block[] skimTop(Chunk chunk){
+    public static ChunkBlock[] skimTop(Chunk chunk){
         int highest = chunk.getWorld().getMaxHeight();
         int lowest = chunk.getWorld().getMinHeight();
-        List<Block> surfaceBlocks = new ArrayList<>();
+        List<ChunkBlock> surfaceBlocks = new ArrayList<>();
 
         for(int i = 0;i < 16; i++){
             for(int j = 0; j < 16; j++){
                 for(int k = highest; k > lowest; k--){
                     Block block = chunk.getBlock(i,k,j);
                     if(!block.getType().isAir()){
-                        surfaceBlocks.add(block);
+                        surfaceBlocks.add(new ChunkBlock(block));
                         break;
                     }
                 }
             }
         }
 
-        return surfaceBlocks.toArray(new Block[0]);
+        return surfaceBlocks.toArray(new ChunkBlock[0]);
     }
 
     public static Chunk getChunkOffset(Chunk chunk,int offset){

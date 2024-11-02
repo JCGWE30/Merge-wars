@@ -8,6 +8,7 @@ import org.bukkit.block.Block;
 import org.bukkit.generator.BiomeProvider;
 import org.bukkit.generator.WorldInfo;
 import org.jetbrains.annotations.NotNull;
+import org.pigslayer.mergewars.GameFlow.Team.ParrelelChunk;
 import org.pigslayer.mergewars.Utils.ChunkUtils;
 
 import java.util.*;
@@ -18,6 +19,20 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ChunkManager {
+    public static class ChunkBlock{
+        public int localX;
+        public int localY;
+        public int localZ;
+        public ChunkBlock(Block block) {
+            this.localX = block.getX() % 15;
+            this.localY = block.getY();
+            this.localZ = block.getZ() % 15;
+        }
+        public Block getBlock(ParrelelChunk chunk) {
+            Chunk realChunk = chunk.getReal();
+            return realChunk.getBlock(localX, localY, localZ);
+        }
+    }
     private static class OnlyPlains extends BiomeProvider{
 
         @Override
@@ -31,8 +46,8 @@ public class ChunkManager {
         }
     }
 
-    public static final Map<Chunk, Integer> highPoints = new ConcurrentHashMap<>();
-    public static final Map<Chunk, Block[]> surfaceMap = new ConcurrentHashMap<>();
+    public static final Map<ParrelelChunk, Integer> highPoints = new ConcurrentHashMap<>();
+    public static final Map<ParrelelChunk, ChunkBlock[]> surfaceMap = new ConcurrentHashMap<>();
 
     public static void cacheChunks(){
         WorldCreator chunkPallete = new WorldCreator("ChunkPallete");
@@ -44,8 +59,8 @@ public class ChunkManager {
 
         Random random = new Random();
 
-        int xOffset = random.nextInt(-10000,10000);
-        int yOffset = random.nextInt(-10000,10000);
+        int xOffset = random.nextInt(10000,30000);
+        int yOffset = random.nextInt(10000,30000);
 
         ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()*2);
 
@@ -69,32 +84,19 @@ public class ChunkManager {
     }
 
     private static void processChunk(Chunk chunk,AtomicInteger atomic){
-        highPoints.put(chunk, ChunkUtils.getHighestLocation(chunk));
-        surfaceMap.put(chunk, ChunkUtils.skimTop(chunk));
+        ParrelelChunk parrelel = new ParrelelChunk(chunk);
+        highPoints.put(parrelel, ChunkUtils.getHighestLocation(chunk));
+        surfaceMap.put(parrelel, ChunkUtils.skimTop(chunk));
         System.out.println("Processing complete on chunk "+atomic.getAndIncrement());
     }
 
-    public static int getHighestY(Chunk chunk){
-        return getHighestY(chunk.getX(),chunk.getZ());
+    public static int getHighestY(ParrelelChunk chunk){
+        return highPoints.get(chunk.getOriginal());
     }
 
-    public static int getHighestY(int x,int z){
-        Chunk chunk = highPoints.keySet().stream()
-                .filter(c->c.getX()==x&&c.getZ()==z)
-                .findAny()
-                .orElse(null);
-        if(chunk==null) return -1;
-        return highPoints.get(chunk);
-    }
-
-    public static Block[] getSurfaceMap(Chunk query){
-        int x = query.getX();
-        int z = query.getZ();
-        Chunk chunk = surfaceMap.keySet().stream()
-                .filter(c->c.getX()==x&&c.getZ()==z)
-                .findAny()
-                .orElse(null);
-        if(chunk==null) return null;
-        return surfaceMap.get(chunk);
+    public static Block[] getSurfaceMap(ParrelelChunk chunk){
+        return Arrays.stream(surfaceMap.get(chunk.getOriginal()))
+                .map(c->c.getBlock(chunk))
+                .toArray(Block[]::new);
     }
 }

@@ -32,7 +32,7 @@ public class Team {
         this.name = name;
         this.players = players.stream().map((p)-> MergePlayer.convert(p,this)).toList();
 
-        teamArea = new LandMass(ChunkManager.highPoints.keySet().toArray(new Chunk[0]), world, areaOffset);
+        teamArea = new LandMass(ChunkManager.highPoints.keySet().toArray(new ParrelelChunk[0]), world, areaOffset);
     }
 
     public List<MergePlayer> getPlayers(){

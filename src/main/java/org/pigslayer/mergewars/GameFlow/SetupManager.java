@@ -13,6 +13,7 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.pigslayer.mergewars.GameFlow.Team.LandMass;
 import org.pigslayer.mergewars.GameFlow.Team.MergePlayer;
+import org.pigslayer.mergewars.GameFlow.Team.ParrelelChunk;
 import org.pigslayer.mergewars.GameFlow.Team.Team;
 import org.pigslayer.mergewars.Utils.ChunkUtils;
 
@@ -27,7 +28,7 @@ Setup Order
 
 public class SetupManager implements Listener {
     private static class TeamSetupState{
-        public HashMap<Player,Chunk> selectedChunks = new HashMap<>();
+        public HashMap<Player,ParrelelChunk> selectedChunks = new HashMap<>();
         public List<Player> lockedPlayers = new ArrayList<>();
 
         public boolean isLocked(Player chunkOwner) {
@@ -106,16 +107,14 @@ public class SetupManager implements Listener {
 
         Block b = e.getPlayer().getLocation().getBlock();
 
-        Chunk selectedChunk = b.getChunk();
+        ParrelelChunk selectedChunk = ParrelelChunk.convert(b.getChunk());
 
-        Chunk adaptedChunk = ChunkUtils.getChunkOffset(selectedChunk,getTeam(e.getPlayer()).getTeamArea().getOffset());
-
-        updateChunk(e.getPlayer(),adaptedChunk);
+        updateChunk(e.getPlayer(),selectedChunk);
     }
 
-    private void updateChunk(Player player,Chunk chunk){
+    private void updateChunk(Player player,ParrelelChunk chunk){
         TeamSetupState state = getState(player);
-        Chunk oldChunk = state.selectedChunks.get(player);
+        ParrelelChunk oldChunk = state.selectedChunks.get(player);
 
         state.selectedChunks.put(player,chunk);
 
@@ -128,7 +127,9 @@ public class SetupManager implements Listener {
 
         state.lockedPlayers.add(p);
 
-        reloadChunk(getTeam(p),p.getLocation().getChunk());
+        ParrelelChunk pChunk = ParrelelChunk.convert(p.getLocation().getChunk());
+
+        reloadChunk(getTeam(p),pChunk);
         //Update Hotbar here
     }
 
@@ -137,14 +138,16 @@ public class SetupManager implements Listener {
 
         state.lockedPlayers.remove(p);
 
-        reloadChunk(getTeam(p),p.getLocation().getChunk());
+        ParrelelChunk pChunk = ParrelelChunk.convert(p.getLocation().getChunk());
+
+        reloadChunk(getTeam(p),pChunk);
         //Update Hotbar here
     }
 
-    private void reloadChunk(Team team,Chunk chunk){
+    private void reloadChunk(Team team,ParrelelChunk chunk){
 
         List<Player> chunkOwners = getState(team).selectedChunks.entrySet().stream()
-                .filter(e->compareChunks(e.getValue(),chunk))
+                .filter(e->e.getValue()==chunk)
                 .map(Map.Entry::getKey)
                 .toList();
 
@@ -177,9 +180,5 @@ public class SetupManager implements Listener {
                 player.sendBlockChanges(emptyStates);
             }
         }
-    }
-
-    private boolean compareChunks(Chunk a, Chunk b){
-        return a.getX() == b.getX() && a.getZ() == b.getZ();
     }
 }

@@ -25,8 +25,8 @@ import java.util.Iterator;
 import java.util.List;
 
 public class LandMass {
-    private final Chunk[] sourceChunks;
-    private Chunk[] chunks;
+    private final ParrelelChunk[] sourceChunks;
+    private ParrelelChunk[] chunks;
     private World world;
     private int offSet;
     private double[] center = new double[2];
@@ -34,7 +34,7 @@ public class LandMass {
     private double[] corner2 = new double[2];
     private int barrierHeight;
 
-    public LandMass(Chunk[] chunks, World world, int offSet) {
+    public LandMass(ParrelelChunk[] chunks, World world, int offSet) {
         this.sourceChunks = chunks;
         this.world = world;
         this.offSet = offSet;
@@ -63,7 +63,8 @@ public class LandMass {
             player.teleport(location);
         }
 
-        for(Chunk c:chunks){
+        for(ParrelelChunk p:chunks){
+            Chunk c = p.getReal();
             PacketContainer lightPacket = new PacketContainer(PacketType.Play.Server.LIGHT_UPDATE);
             lightPacket.getIntegers().write(0, c.getX())
                     .write(1, c.getZ());
@@ -83,12 +84,14 @@ public class LandMass {
 
     private void setupLandMass(){
         List<Chunk> chunks = new ArrayList<>();
-        for(Chunk donor : sourceChunks){
+        List<ParrelelChunk> parrelelChunks = new ArrayList<>();
+        for(ParrelelChunk pDonor : sourceChunks){
+            Chunk donor = pDonor.getReal();
             Chunk recipient = world.getChunkAt(donor.getX()+offSet, donor.getZ());
             chunks.add(recipient);
-            pasteChunk(donor, recipient);
+            parrelelChunks.add(pasteChunk(pDonor, recipient));
         }
-        this.chunks = chunks.toArray(new Chunk[0]);
+        this.chunks = parrelelChunks.toArray(new ParrelelChunk[0]);
     }
 
     private void calculateCenter(){
@@ -97,7 +100,8 @@ public class LandMass {
         int minZ = Integer.MAX_VALUE;
         int maxZ = Integer.MIN_VALUE;
 
-        for (Chunk chunk : chunks) {
+        for (ParrelelChunk pChunk : chunks) {
+            Chunk chunk = pChunk.getReal();
             int chunkX = chunk.getX();
             int chunkZ = chunk.getZ();
 
@@ -105,7 +109,7 @@ public class LandMass {
             maxX = Math.max(maxX, chunkX);
             minZ = Math.min(minZ, chunkZ);
             maxZ = Math.max(maxZ, chunkZ);
-            barrierHeight = Math.max(ChunkManager.getHighestY(ChunkUtils.getChunkOffset(chunk,offSet)),barrierHeight);
+            barrierHeight = Math.max(ChunkManager.getHighestY(pChunk),barrierHeight);
         }
 
         barrierHeight+=50;
@@ -124,8 +128,8 @@ public class LandMass {
         center = new double[] { centerBlockX, centerBlockZ };
     }
 
-    private Chunk pasteChunk(Chunk donor, Chunk recipient){
-        CraftChunk fromCC = (CraftChunk) donor;
+    private ParrelelChunk pasteChunk(ParrelelChunk donor, Chunk recipient){
+        CraftChunk fromCC = (CraftChunk) donor.getReal();
         CraftChunk toCC = (CraftChunk) recipient;
 
         IChunkAccess access = toCC.getHandle(ChunkStatus.f);
@@ -135,12 +139,12 @@ public class LandMass {
 
         System.arraycopy(fromSection, 0, toSection, 0, fromSection.length);
 
-        return recipient;
+        return new ParrelelChunk(donor,recipient);
     }
 
     public void loadMass() {
-        for(Chunk chunk:chunks){
-            chunk.load(false);
+        for(ParrelelChunk chunk:chunks){
+            chunk.getReal().load(false);
         }
     }
 
@@ -150,9 +154,5 @@ public class LandMass {
 
     public int getBarrierHeight() {
         return barrierHeight;
-    }
-
-    public int getOffset() {
-        return offSet;
     }
 }
