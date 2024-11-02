@@ -1,0 +1,11 @@
+name: MergeWars
+version: '1.0'
+main: org.pigslayer.mergewars.MergeWars
+api-version: '1.21'
+commands:
+  teams:
+    usage: /teams
+    description: teams
+  startgame:
+    usage: /startgame
+    description: startgame
