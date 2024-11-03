@@ -3,6 +3,7 @@ package org.pigslayer.mergewars.GameFlow.Team;
 import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.pigslayer.mergewars.GameFlow.ChunkManager;
+import org.pigslayer.mergewars.Scoreboard.ScoreboardManager;
 
 import java.util.*;
 
@@ -22,24 +23,34 @@ public class Team {
             this.colorSymbol = colorSymbol;
         }
     }
+    public String name;
+    public Color color = Color.RED;
 
     protected LandMass teamArea;
-    protected String name;
-    protected Color color = Color.RED;
     protected List<MergePlayer> players;
+    protected ScoreboardManager scoreboard;
 
     public Team(String name, List<Player> players,int areaOffset,World world){
         this.name = name;
         this.players = players.stream().map((p)-> MergePlayer.convert(p,this)).toList();
 
-        teamArea = new LandMass(ChunkManager.highPoints.keySet().toArray(new Chunk[0]), world, areaOffset);
+        scoreboard = new ScoreboardManager(this);
+        teamArea = new LandMass(ChunkManager.chunkMap.keySet().toArray(new Chunk[0]), world, areaOffset);
     }
 
     public List<MergePlayer> getPlayers(){
         return players;
     }
 
-    public LandMass getTeamArea() {
+    public LandMass getLandMass() {
         return teamArea;
+    }
+
+    public void setupScoreboard() {
+        scoreboard.initScoreboard();
+    }
+
+    public void updateScoreboard(){
+        scoreboard.reloadScoreboard();
     }
 }

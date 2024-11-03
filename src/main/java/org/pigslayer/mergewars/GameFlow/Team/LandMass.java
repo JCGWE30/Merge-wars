@@ -20,13 +20,11 @@ import org.pigslayer.mergewars.MergeWars;
 import org.pigslayer.mergewars.Utils.BlockUtils;
 import org.pigslayer.mergewars.Utils.ChunkUtils;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 public class LandMass {
     private final Chunk[] sourceChunks;
-    private Chunk[] chunks;
+    private HashMap<Chunk, UUID> chunks = new HashMap<>();
     private World world;
     private int offSet;
     private double[] center = new double[2];
@@ -63,7 +61,7 @@ public class LandMass {
             player.teleport(location);
         }
 
-        for(Chunk c:chunks){
+        for(Chunk c:chunks.keySet()){
             PacketContainer lightPacket = new PacketContainer(PacketType.Play.Server.LIGHT_UPDATE);
             lightPacket.getIntegers().write(0, c.getX())
                     .write(1, c.getZ());
@@ -82,13 +80,11 @@ public class LandMass {
     }
 
     private void setupLandMass(){
-        List<Chunk> chunks = new ArrayList<>();
-        for(Chunk donor : sourceChunks){
-            Chunk recipient = world.getChunkAt(donor.getX()+offSet, donor.getZ());
-            chunks.add(recipient);
-            pasteChunk(donor, recipient);
+        for(Chunk chunk : sourceChunks){
+            Chunk recipient = world.getChunkAt(chunk.getX()+offSet, chunk.getZ());
+            chunks.put(recipient,ChunkManager.getUUID(chunk));
+            pasteChunk(chunk, recipient);
         }
-        this.chunks = chunks.toArray(new Chunk[0]);
     }
 
     private void calculateCenter(){
@@ -97,7 +93,10 @@ public class LandMass {
         int minZ = Integer.MAX_VALUE;
         int maxZ = Integer.MIN_VALUE;
 
-        for (Chunk chunk : chunks) {
+        for (Map.Entry<Chunk,UUID> entry : chunks.entrySet()) {
+            Chunk chunk = entry.getKey();
+            UUID id = entry.getValue();
+
             int chunkX = chunk.getX();
             int chunkZ = chunk.getZ();
 
@@ -105,7 +104,7 @@ public class LandMass {
             maxX = Math.max(maxX, chunkX);
             minZ = Math.min(minZ, chunkZ);
             maxZ = Math.max(maxZ, chunkZ);
-            barrierHeight = Math.max(ChunkManager.getHighestY(ChunkUtils.getChunkOffset(chunk,offSet)),barrierHeight);
+            barrierHeight = Math.max(ChunkManager.getHighestY(id),barrierHeight);
         }
 
         barrierHeight+=50;
@@ -124,7 +123,7 @@ public class LandMass {
         center = new double[] { centerBlockX, centerBlockZ };
     }
 
-    private Chunk pasteChunk(Chunk donor, Chunk recipient){
+    private void pasteChunk(Chunk donor, Chunk recipient){
         CraftChunk fromCC = (CraftChunk) donor;
         CraftChunk toCC = (CraftChunk) recipient;
 
@@ -134,12 +133,10 @@ public class LandMass {
         ChunkSection[] toSection = access.d();
 
         System.arraycopy(fromSection, 0, toSection, 0, fromSection.length);
-
-        return recipient;
     }
 
     public void loadMass() {
-        for(Chunk chunk:chunks){
+        for(Chunk chunk : chunks.keySet()){
             chunk.load(false);
         }
     }
@@ -152,7 +149,11 @@ public class LandMass {
         return barrierHeight;
     }
 
-    public int getOffset() {
-        return offSet;
+    public UUID getId(Chunk chunk){
+        return chunks.get(chunk);
+    }
+
+    public boolean isInArea(Player player) {
+        return player.getWorld()==world;
     }
 }

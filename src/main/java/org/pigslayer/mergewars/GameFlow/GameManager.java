@@ -18,6 +18,7 @@ import org.bukkit.generator.WorldInfo;
 import org.jetbrains.annotations.NotNull;
 import org.pigslayer.mergewars.GameFlow.Team.Team;
 import org.pigslayer.mergewars.MergeWars;
+import org.pigslayer.mergewars.Scoreboard.ScoreboardManager;
 
 import java.util.*;
 
@@ -54,37 +55,7 @@ public class GameManager {
         SetupManager.runSetup(activeTeams);
     }
 
-    public Chunk[] getChunks(World world){
-
-        if(world==null)
-            throw new RuntimeException("Error generating world");
-
-        Random random = new Random();
-        int x = random.nextInt(-1,1);
-        int z = random.nextInt(-1,1);
-
-        List<Chunk> chunks = new ArrayList<>();
-
-        for(int i = 0;i<8;i++){
-            for(int j = 0;j<8;j++){
-                int curx = x + (16*i);
-                int curz = z + (16*j);
-                chunks.add(world.getChunkAt(curx >> 4,curz >> 4));
-            }
-        }
-
-        return chunks.toArray(new Chunk[0]);
-    }
-
-    private void recalculateLighting(Chunk chunk){
-        CraftChunk craftChunk = (CraftChunk) chunk;
-        ((CraftWorld) craftChunk.getWorld()).getHandle();
-        IChunkAccess access = craftChunk.getHandle(ChunkStatus.f);
-        for(Player p:Bukkit.getOnlinePlayers()){
-            PacketContainer container = new PacketContainer(PacketType.Play.Server.LIGHT_UPDATE);
-            container.getIntegers().write(0, chunk.getX());
-            container.getIntegers().write(1, chunk.getZ());
-            MergeWars.getProtocolManager().sendServerPacket(p, container);
-        }
+    public static List<Team> getActiveTeams() {
+        return instance.activeTeams;
     }
 }
