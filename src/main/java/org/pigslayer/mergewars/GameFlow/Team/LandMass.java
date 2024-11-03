@@ -20,13 +20,11 @@ import org.pigslayer.mergewars.MergeWars;
 import org.pigslayer.mergewars.Utils.BlockUtils;
 import org.pigslayer.mergewars.Utils.ChunkUtils;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 public class LandMass {
-    private final ParrelelChunk[] sourceChunks;
-    private ParrelelChunk[] chunks;
+    private final Chunk[] sourceChunks;
+    private HashMap<Chunk, UUID> chunks = new HashMap<>();
     private World world;
     private int offSet;
     private double[] center = new double[2];
@@ -34,7 +32,7 @@ public class LandMass {
     private double[] corner2 = new double[2];
     private int barrierHeight;
 
-    public LandMass(ParrelelChunk[] chunks, World world, int offSet) {
+    public LandMass(Chunk[] chunks, World world, int offSet) {
         this.sourceChunks = chunks;
         this.world = world;
         this.offSet = offSet;
@@ -63,8 +61,7 @@ public class LandMass {
             player.teleport(location);
         }
 
-        for(ParrelelChunk p:chunks){
-            Chunk c = p.getReal();
+        for(Chunk c:chunks.keySet()){
             PacketContainer lightPacket = new PacketContainer(PacketType.Play.Server.LIGHT_UPDATE);
             lightPacket.getIntegers().write(0, c.getX())
                     .write(1, c.getZ());
@@ -83,15 +80,11 @@ public class LandMass {
     }
 
     private void setupLandMass(){
-        List<Chunk> chunks = new ArrayList<>();
-        List<ParrelelChunk> parrelelChunks = new ArrayList<>();
-        for(ParrelelChunk pDonor : sourceChunks){
-            Chunk donor = pDonor.getReal();
-            Chunk recipient = world.getChunkAt(donor.getX()+offSet, donor.getZ());
-            chunks.add(recipient);
-            parrelelChunks.add(pasteChunk(pDonor, recipient));
+        for(Chunk chunk : sourceChunks){
+            Chunk recipient = world.getChunkAt(chunk.getX()+offSet, chunk.getZ());
+            chunks.put(recipient,ChunkManager.getUUID(chunk));
+            pasteChunk(chunk, recipient);
         }
-        this.chunks = parrelelChunks.toArray(new ParrelelChunk[0]);
     }
 
     private void calculateCenter(){
@@ -100,8 +93,10 @@ public class LandMass {
         int minZ = Integer.MAX_VALUE;
         int maxZ = Integer.MIN_VALUE;
 
-        for (ParrelelChunk pChunk : chunks) {
-            Chunk chunk = pChunk.getReal();
+        for (Map.Entry<Chunk,UUID> entry : chunks.entrySet()) {
+            Chunk chunk = entry.getKey();
+            UUID id = entry.getValue();
+
             int chunkX = chunk.getX();
             int chunkZ = chunk.getZ();
 
@@ -109,7 +104,7 @@ public class LandMass {
             maxX = Math.max(maxX, chunkX);
             minZ = Math.min(minZ, chunkZ);
             maxZ = Math.max(maxZ, chunkZ);
-            barrierHeight = Math.max(ChunkManager.getHighestY(pChunk),barrierHeight);
+            barrierHeight = Math.max(ChunkManager.getHighestY(id),barrierHeight);
         }
 
         barrierHeight+=50;
@@ -128,8 +123,8 @@ public class LandMass {
         center = new double[] { centerBlockX, centerBlockZ };
     }
 
-    private ParrelelChunk pasteChunk(ParrelelChunk donor, Chunk recipient){
-        CraftChunk fromCC = (CraftChunk) donor.getReal();
+    private void pasteChunk(Chunk donor, Chunk recipient){
+        CraftChunk fromCC = (CraftChunk) donor;
         CraftChunk toCC = (CraftChunk) recipient;
 
         IChunkAccess access = toCC.getHandle(ChunkStatus.f);
@@ -138,13 +133,11 @@ public class LandMass {
         ChunkSection[] toSection = access.d();
 
         System.arraycopy(fromSection, 0, toSection, 0, fromSection.length);
-
-        return new ParrelelChunk(donor,recipient);
     }
 
     public void loadMass() {
-        for(ParrelelChunk chunk:chunks){
-            chunk.getReal().load(false);
+        for(Chunk chunk : chunks.keySet()){
+            chunk.load(false);
         }
     }
 
@@ -154,5 +147,13 @@ public class LandMass {
 
     public int getBarrierHeight() {
         return barrierHeight;
+    }
+
+    public UUID getId(Chunk chunk){
+        return chunks.get(chunk);
+    }
+
+    public boolean isInArea(Player player) {
+        return player.getWorld()==world;
     }
 }

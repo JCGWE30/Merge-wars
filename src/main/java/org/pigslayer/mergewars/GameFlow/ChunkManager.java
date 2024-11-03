@@ -1,14 +1,15 @@
 package org.pigslayer.mergewars.GameFlow;
 
 import org.bukkit.Chunk;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
 import org.bukkit.generator.BiomeProvider;
 import org.bukkit.generator.WorldInfo;
 import org.jetbrains.annotations.NotNull;
-import org.pigslayer.mergewars.GameFlow.Team.ParrelelChunk;
 import org.pigslayer.mergewars.Utils.ChunkUtils;
 
 import java.util.*;
@@ -24,13 +25,12 @@ public class ChunkManager {
         public int localY;
         public int localZ;
         public ChunkBlock(Block block) {
-            this.localX = block.getX() % 15;
+            this.localX = block.getX() % 16;
             this.localY = block.getY();
-            this.localZ = block.getZ() % 15;
+            this.localZ = block.getZ() % 16;
         }
-        public Block getBlock(ParrelelChunk chunk) {
-            Chunk realChunk = chunk.getReal();
-            return realChunk.getBlock(localX, localY, localZ);
+        public Block getBlock(Chunk chunk) {
+            return chunk.getBlock(localX,localY,localZ);
         }
     }
     private static class OnlyPlains extends BiomeProvider{
@@ -46,8 +46,9 @@ public class ChunkManager {
         }
     }
 
-    public static final Map<ParrelelChunk, Integer> highPoints = new ConcurrentHashMap<>();
-    public static final Map<ParrelelChunk, ChunkBlock[]> surfaceMap = new ConcurrentHashMap<>();
+    public static final Map<UUID, Integer> highPoints = new ConcurrentHashMap<>();
+    public static final Map<UUID, ChunkBlock[]> surfaceMap = new ConcurrentHashMap<>();
+    public static final Map<Chunk, UUID> chunkMap = new ConcurrentHashMap<>();
 
     public static void cacheChunks(){
         WorldCreator chunkPallete = new WorldCreator("ChunkPallete");
@@ -84,19 +85,24 @@ public class ChunkManager {
     }
 
     private static void processChunk(Chunk chunk,AtomicInteger atomic){
-        ParrelelChunk parrelel = new ParrelelChunk(chunk);
-        highPoints.put(parrelel, ChunkUtils.getHighestLocation(chunk));
-        surfaceMap.put(parrelel, ChunkUtils.skimTop(chunk));
+        UUID id = UUID.randomUUID();
+        highPoints.put(id, ChunkUtils.getHighestLocation(chunk));
+        surfaceMap.put(id, ChunkUtils.skimTop(chunk));
+        chunkMap.put(chunk, id);
         System.out.println("Processing complete on chunk "+atomic.getAndIncrement());
     }
 
-    public static int getHighestY(ParrelelChunk chunk){
-        return highPoints.get(chunk.getOriginal());
+    public static int getHighestY(UUID chunkId){
+        return highPoints.get(chunkId);
     }
 
-    public static Block[] getSurfaceMap(ParrelelChunk chunk){
-        return Arrays.stream(surfaceMap.get(chunk.getOriginal()))
+    public static Block[] getSurfaceMap(UUID sourceChunk,Chunk chunk){
+        return Arrays.stream(surfaceMap.get(sourceChunk))
                 .map(c->c.getBlock(chunk))
                 .toArray(Block[]::new);
+    }
+
+    public static UUID getUUID(Chunk chunk) {
+        return chunkMap.get(chunk);
     }
 }

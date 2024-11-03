@@ -51,10 +51,7 @@ public class ChunkUtils {
         return surfaceBlocks.toArray(new ChunkBlock[0]);
     }
 
-    public static Chunk getChunkOffset(Chunk chunk,int offset){
-        int x = chunk.getX() - offset;
-        int z = chunk.getZ();
-
-        return chunk.getWorld().getChunkAt(x, z);
+    public static boolean matchChunk(Chunk chunk1,Chunk chunk2){
+        return chunk1.getX() == chunk2.getX() && chunk1.getZ() == chunk2.getZ();
     }
 }

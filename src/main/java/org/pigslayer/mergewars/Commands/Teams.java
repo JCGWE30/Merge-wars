@@ -14,6 +14,23 @@ import java.util.*;
 
 public class Teams implements CommandExecutor, TabCompleter {
     protected static HashMap<String,List<UUID>> teams = new HashMap<>();
+    private static final String[] possibleDebugNames = {
+            "Thunderhawks",
+            "Silver Wolves",
+            "Crimson Falcons",
+            "Stormbreakers",
+            "Blaze Runners",
+            "Iron Giants",
+            "Shadow Stalkers",
+            "Golden Dragons",
+            "Eagle Eyes",
+            "Frost Titans",
+            "Mystic Lions",
+            "Phoenix Raiders",
+            "Night Owls",
+            "Emerald Spartans",
+            "Solar Knights"
+    };
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if(args.length==0){
@@ -49,7 +66,7 @@ public class Teams implements CommandExecutor, TabCompleter {
                 case "debug":
                     try {
                         for (int i = 0; i < Integer.parseInt(args[1]); i++) {
-                            String team = UUID.randomUUID().toString();
+                            String team = possibleDebugNames[i];
                             teamAdd(team);
                             for(Player p:Bukkit.getOnlinePlayers()){
                                 teamSet(team,p.getName());
