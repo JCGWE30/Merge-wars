@@ -51,7 +51,6 @@ public class LandMass {
             Block block = blocks.next();
             Material mat = state ? Material.BARRIER : Material.AIR;
             block.setType(mat);
-            System.out.println("Setting "+block.getLocation()+" to "+mat);
         }
     }
 
@@ -141,12 +140,9 @@ public class LandMass {
         }
     }
 
-    public World getWorld() {
-        return world;
-    }
-
-    public int getBarrierHeight() {
-        return barrierHeight;
+    public Chunk getRandomChunk(){
+        Random random = new Random();
+        return chunks.keySet().toArray(new Chunk[0])[random.nextInt(chunks.size())];
     }
 
     public UUID getId(Chunk chunk){
@@ -155,5 +151,14 @@ public class LandMass {
 
     public boolean isInArea(Player player) {
         return player.getWorld()==world;
+    }
+
+    public Chunk getChunk(UUID newChunk) {
+        for(Chunk chunk : chunks.keySet()){
+            if(chunks.get(chunk).equals(newChunk)){
+                return chunk;
+            }
+        }
+        throw new RuntimeException("Error fetching chunk");
     }
 }

@@ -5,6 +5,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
+import org.pigslayer.mergewars.Constants;
 import org.pigslayer.mergewars.GameFlow.Team.MergePlayer;
 import org.pigslayer.mergewars.GameFlow.Team.Team;
 
@@ -40,7 +41,7 @@ public class ScoreboardManager {
     public void initScoreboard() {
 
         Scoreboard scoreboard = Bukkit.getScoreboardManager().getNewScoreboard();
-        Objective objective = scoreboard.registerNewObjective("§e§lMerge§6§lWars", "dummy");
+        Objective objective = scoreboard.registerNewObjective(Constants.MERGE_TITLE, "dummy");
         objective.setDisplaySlot(DisplaySlot.SIDEBAR);
 
         currentState = getSegments();
@@ -63,7 +64,7 @@ public class ScoreboardManager {
         for(Player p : observers) {
             Objective obj = p.getScoreboard().getObjective(DisplaySlot.SIDEBAR);
             for(int i = 0; i < length; i++) {
-                if(currentState.get(i)==text.get(i)) continue;
+                if(i>=currentState.size() || Objects.equals(currentState.get(i), text.get(i))) continue;
                 p.getScoreboard().resetScores(currentState.get(i));
                 obj.getScore(text.get(i)).setScore(i);
             }

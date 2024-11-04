@@ -1,12 +1,10 @@
 package org.pigslayer.mergewars.Scoreboard;
 
-import org.bukkit.entity.Player;
 import org.pigslayer.mergewars.GameFlow.GameManager;
-import org.pigslayer.mergewars.GameFlow.SetupManager;
+import org.pigslayer.mergewars.GameFlow.GamePhases.SetupManager;
 import org.pigslayer.mergewars.GameFlow.Team.Team;
 
 import java.text.SimpleDateFormat;
-import java.time.format.DateTimeFormatter;
 import java.util.Date;
 
 public class ScoreboardUpdaters {
@@ -26,7 +24,17 @@ public class ScoreboardUpdaters {
     }
 
     protected static void updateSetupDisplay(ScoreboardSegment segment, Team team){
-        segment.addText("§eConfirmed Players");
-        segment.addText("§72/4");
+        SetupManager.TeamSetupState state = SetupManager.getState(team);
+        if(state==null) return;
+
+        int confirmed = state.confirmedPlayers.size();
+
+        if(confirmed==team.getPlayers().size()){
+            segment.addText("§eWaiting for setup")
+                    .addText("§eto end");
+        }else{
+            segment.addText("§eConfirmed Players");
+            segment.addText("§7"+confirmed+"/"+team.getPlayers().size());
+        }
     }
 }

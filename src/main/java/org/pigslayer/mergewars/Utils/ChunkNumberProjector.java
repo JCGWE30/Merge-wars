@@ -68,32 +68,17 @@ public class ChunkNumberProjector {
         return finalStates.toArray(new BlockState[0]);
     }
 
-    public static BlockState[] resetWriting(Chunk chunk){
+    public static BlockState[] resetWriting(Chunk chunk,UUID originId){
         int startingX = 3;
         int startingZ = 6;
+        int y = ChunkManager.getHighestY(originId)+3;
 
         List<BlockState> finalStates = new ArrayList<>();
 
-        for(int i = 0; i < 5;i++){
+        for(int i = 0; i < 12;i++){
             for(int j = 0; j < 5;j++){
                 Block yPointer = chunk.getBlock(startingX+i,0,startingZ+j);
-                Block block = chunk.getBlock(i+startingX,BlockUtils.getHighestY(yPointer, Collections.singleton(Material.BARRIER))+1,j+startingZ);
-                byte pointer = pointers[i];
-
-                if((pointer & xBytes[j])>0x0){
-                    BlockState state = block.getState();
-                    state.setType(Material.AIR);
-                    finalStates.add(state);
-                }
-            }
-        }
-
-        startingX = 9;
-
-        for(int i = 0; i < 3;i++){
-            for(int j = 0; j < 5;j++){
-                Block yPointer = chunk.getBlock(startingX+i,0,startingZ+j);
-                Block block = chunk.getBlock(i+startingX,BlockUtils.getHighestY(yPointer, Collections.singleton(Material.BARRIER))+1,j+startingZ);
+                Block block = chunk.getBlock(i+startingX,y,j+startingZ);
 
                 BlockState state = block.getState();
                 state.setType(Material.AIR);

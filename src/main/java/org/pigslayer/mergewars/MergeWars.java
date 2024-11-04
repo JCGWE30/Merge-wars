@@ -10,7 +10,7 @@ import org.pigslayer.mergewars.Commands.StartGame;
 import org.pigslayer.mergewars.Commands.Teams;
 import org.pigslayer.mergewars.GameFlow.ChunkManager;
 import org.pigslayer.mergewars.GameFlow.GameManager;
-import org.pigslayer.mergewars.GameFlow.SetupManager;
+import org.pigslayer.mergewars.GameFlow.GamePhases.SetupManager;
 
 import java.lang.reflect.InvocationTargetException;
 
@@ -59,7 +59,11 @@ public final class MergeWars extends JavaPlugin {
         }
     }
 
-    public static void runTaskTimer(BukkitRunnable runnable,long delay,long period){
+    public static void runTimer(BukkitRunnable runnable, long delay, long period){
         runnable.runTaskTimer(plugin,delay,period);
+    }
+
+    public static void runLater(BukkitRunnable runnable,long delay){
+        runnable.runTaskLater(plugin,delay);
     }
 }
