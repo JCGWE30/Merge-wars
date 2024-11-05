@@ -73,9 +73,11 @@ public class SetupManager implements Listener {
     private static final ItemGenerator LOCKED = new ItemGenerator("§eRight click to confirm",1,Material.YELLOW_STAINED_GLASS_PANE);
     private static final ItemGenerator CONFIRMED = new ItemGenerator("§3Selection Confirmed",1,Material.GREEN_STAINED_GLASS_PANE);
 
+    private boolean inSetup = false;
+    private boolean forceClaimComplete = false;
+    private UUID[] totalChunkIds;
     private List<UUID> claimedChunks = new ArrayList<>();
     private static SetupManager instance;
-    private boolean inSetup = false;
     private HashMap<Team,TeamSetupState> teamSetupStates = new HashMap<>();
     private long setupEnd;
 
@@ -87,6 +89,7 @@ public class SetupManager implements Listener {
         instance.setupEnd = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(2);
 
         for(Team t:teams){
+            instance.totalChunkIds = t.getLandMass().getChunkIds();
             t.setupScoreboard();
 
             instance.teamSetupStates.put(t,new TeamSetupState(t));
@@ -110,6 +113,13 @@ public class SetupManager implements Listener {
                 MergeWars.runTimer(new BukkitRunnable() {
                     @Override
                     public void run() {
+                        long timeLeft = instance.setupEnd - System.currentTimeMillis();
+
+                        if(timeLeft<TimeUnit.SECONDS.toMillis(10)&&!instance.forceClaimComplete){
+                            instance.forceClaimComplete = true;
+                            instance.forceSelectChunk();
+                        }
+
                         if(System.currentTimeMillis() >= instance.setupEnd){
                             this.cancel();
                             instance.inSetup=false;
@@ -130,12 +140,20 @@ public class SetupManager implements Listener {
 
     }
 
+    private void forceSelectChunk(){
+        List<UUID> uuids = new ArrayList<>(Arrays.stream(totalChunkIds)
+                .filter(id -> !claimedChunks.contains(id))
+                .toList());
+        Collections.shuffle(uuids);
+        for(TeamSetupState state : teamSetupStates.values()){
+            if(!state.isConfirmed){
+                state.confirmedChunk = state.landMass.getChunk(uuids.removeFirst());
+            }
+        }
+    }
+
     private void endSetup(){
         for(TeamSetupState state:teamSetupStates.values()){
-            if(!state.isConfirmed){
-                state.confirmedChunk = state.landMass.getRandomChunk();
-            }
-
             Team team = state.team;
 
             for(UUID chunk:claimedChunks){
@@ -145,7 +163,7 @@ public class SetupManager implements Listener {
                 forceChunkReset(team,chunk);
             }
 
-            team.getLandMass().setCeilingState(false);
+            state.landMass.setCeilingState(false);
             for(MergePlayer p:team.getPlayers()){
                 AttributeInstance attribute = p.getPlayer().getAttribute(Attribute.GENERIC_MOVEMENT_SPEED);
                 attribute.setBaseValue(0.1f);
@@ -285,6 +303,7 @@ public class SetupManager implements Listener {
         return topChunks.get(random.nextInt(topChunks.size()));
     }
 
+
     private void checkConfirmed(Team team,UUID newChunk){
         TeamSetupState state = getState(team);
         reloadChunk(team,state.landMass.getChunk(newChunk));
@@ -355,10 +374,12 @@ public class SetupManager implements Listener {
 
         boolean isConfirmed = claimedChunks.contains(teamState.landMass.getId(chunk));
 
-        Material type = isLocked ? Material.DIAMOND_BLOCK : Material.BLUE_CONCRETE;
+        Material type = isLocked ? Material.BEDROCK : Material.NETHERRACK;
 
         if(isConfirmed){
-            type = Material.BEDROCK;
+            UUID id = team.getLandMass().getId(chunk);
+            Team owner = getClaimOwner(id);
+            type = owner.color.material;
         }
 
         Block[] changeBlocks = ChunkManager.getSurfaceMap(team.getLandMass().getId(chunk),chunk);
@@ -396,8 +417,6 @@ public class SetupManager implements Listener {
     }
 
     private void forceChunkReset(Team team,Chunk chunk){
-        TeamSetupState teamState = getState(team);
-
         Block[] changeBlocks = ChunkManager.getSurfaceMap(team.getLandMass().getId(chunk),chunk);
         List<BlockState> states = new ArrayList<>();
 
@@ -409,5 +428,17 @@ public class SetupManager implements Listener {
             Player player = p.getPlayer();
             player.sendBlockChanges(states);
         }
+    }
+
+    private Team getClaimOwner(UUID uuid){
+        for(TeamSetupState state:teamSetupStates.values()){
+            if(!state.isConfirmed) continue;
+
+            UUID claimChunk = state.landMass.getId(state.confirmedChunk);
+            if(uuid==claimChunk){
+                return state.team;
+            }
+        }
+        return null;
     }
 }

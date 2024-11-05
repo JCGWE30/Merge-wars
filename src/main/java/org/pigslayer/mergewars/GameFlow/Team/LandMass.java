@@ -13,6 +13,7 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.craftbukkit.v1_21_R1.CraftChunk;
+import org.bukkit.craftbukkit.v1_21_R1.block.CraftBlock;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 import org.pigslayer.mergewars.GameFlow.ChunkManager;
@@ -40,7 +41,14 @@ public class LandMass {
         calculateCenter();
     }
 
+    private static boolean canRun = true;
+
     public void setCeilingState(boolean state){
+        if(!state){
+            if(!canRun) return;
+            canRun = false;
+        }
+        System.out.println("Setting mass state to "+state);
         Vector vector1 = new Vector(corner1[0], barrierHeight, corner1[1]);
         Vector vector2 = new Vector(corner2[0], barrierHeight, corner2[1]);
 
@@ -49,8 +57,8 @@ public class LandMass {
 
         while(blocks.hasNext()){
             Block block = blocks.next();
-            Material mat = state ? Material.BARRIER : Material.AIR;
-            block.setType(mat);
+            Material mat = state ? Material.BARRIER : Material.STONE;
+            block.setBlockData(mat.createBlockData());
         }
     }
 
@@ -140,9 +148,8 @@ public class LandMass {
         }
     }
 
-    public Chunk getRandomChunk(){
-        Random random = new Random();
-        return chunks.keySet().toArray(new Chunk[0])[random.nextInt(chunks.size())];
+    public UUID[] getChunkIds(){
+        return chunks.values().toArray(new UUID[0]);
     }
 
     public UUID getId(Chunk chunk){

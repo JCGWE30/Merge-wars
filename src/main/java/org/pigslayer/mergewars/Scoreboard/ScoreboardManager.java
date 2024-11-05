@@ -64,8 +64,10 @@ public class ScoreboardManager {
         for(Player p : observers) {
             Objective obj = p.getScoreboard().getObjective(DisplaySlot.SIDEBAR);
             for(int i = 0; i < length; i++) {
-                if(i>=currentState.size() || Objects.equals(currentState.get(i), text.get(i))) continue;
-                p.getScoreboard().resetScores(currentState.get(i));
+
+                if (i < currentState.size() && !Objects.equals(currentState.get(i), text.get(i)))
+                    p.getScoreboard().resetScores(currentState.get(i));
+
                 obj.getScore(text.get(i)).setScore(i);
             }
         }
