@@ -37,6 +37,7 @@ public class GameManager {
         for(Map.Entry<String,List<UUID>> entry:teams.entrySet()){
             List<Player> players = entry.getValue().stream().map(Bukkit::getPlayer).toList();
             activeTeams.add(new Team(entry.getKey(),players,offset,wld));
+            System.out.println("Process complete on team");
             offset += 200;
         }
 

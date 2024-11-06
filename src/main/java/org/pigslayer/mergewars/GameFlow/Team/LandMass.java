@@ -2,25 +2,37 @@ package org.pigslayer.mergewars.GameFlow.Team;
 
 import com.comphenix.protocol.PacketType;
 import com.comphenix.protocol.events.PacketContainer;
-import net.minecraft.server.level.EntityPlayer;
-import net.minecraft.world.level.ChunkCoordIntPair;
-import net.minecraft.world.level.chunk.ChunkSection;
-import net.minecraft.world.level.chunk.IChunkAccess;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.BlockPosition;
+import net.minecraft.core.Holder;
+import net.minecraft.core.SectionPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.WorldServer;
+import net.minecraft.world.level.biome.BiomeBase;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.IBlockData;
+import net.minecraft.world.level.block.state.properties.IBlockState;
+import net.minecraft.world.level.chunk.*;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.craftbukkit.v1_21_R1.CraftChunk;
+import org.bukkit.craftbukkit.v1_21_R1.CraftWorld;
 import org.bukkit.craftbukkit.v1_21_R1.block.CraftBlock;
+import org.bukkit.craftbukkit.v1_21_R1.block.data.CraftBlockData;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 import org.pigslayer.mergewars.GameFlow.ChunkManager;
 import org.pigslayer.mergewars.MergeWars;
 import org.pigslayer.mergewars.Utils.BlockUtils;
-import org.pigslayer.mergewars.Utils.ChunkUtils;
 
+import java.io.*;
+import java.lang.reflect.Field;
 import java.util.*;
 
 public class LandMass {
@@ -41,13 +53,7 @@ public class LandMass {
         calculateCenter();
     }
 
-    private static boolean canRun = true;
-
     public void setCeilingState(boolean state){
-        if(!state){
-            if(!canRun) return;
-            canRun = false;
-        }
         System.out.println("Setting mass state to "+state);
         Vector vector1 = new Vector(corner1[0], barrierHeight, corner1[1]);
         Vector vector2 = new Vector(corner2[0], barrierHeight, corner2[1]);
@@ -57,7 +63,7 @@ public class LandMass {
 
         while(blocks.hasNext()){
             Block block = blocks.next();
-            Material mat = state ? Material.BARRIER : Material.STONE;
+            Material mat = state ? Material.BARRIER : Material.AIR;
             block.setBlockData(mat.createBlockData());
         }
     }
@@ -66,14 +72,6 @@ public class LandMass {
         if(defaultPlace){
             Location location = new Location(world, center[0], barrierHeight+3, center[1]);
             player.teleport(location);
-        }
-
-        for(Chunk c:chunks.keySet()){
-            PacketContainer lightPacket = new PacketContainer(PacketType.Play.Server.LIGHT_UPDATE);
-            lightPacket.getIntegers().write(0, c.getX())
-                    .write(1, c.getZ());
-
-            MergeWars.getProtocolManager().sendServerPacket(player, lightPacket);
         }
 
         PacketContainer centerPacket = new PacketContainer(PacketType.Play.Server.SET_BORDER_CENTER);
@@ -131,15 +129,44 @@ public class LandMass {
     }
 
     private void pasteChunk(Chunk donor, Chunk recipient){
+        World world = donor.getWorld();
         CraftChunk fromCC = (CraftChunk) donor;
         CraftChunk toCC = (CraftChunk) recipient;
 
-        IChunkAccess access = toCC.getHandle(ChunkStatus.f);
+        ChunkAccess access = toCC.getHandle(ChunkStatus.FULL);
 
-        ChunkSection[] fromSection = fromCC.getHandle(ChunkStatus.f).d();
-        ChunkSection[] toSection = access.d();
+        LevelChunkSection[] fromSections = fromCC.getHandle(ChunkStatus.FULL).getSections();
+        LevelChunkSection[] toSections = access.getSections();
 
-        System.arraycopy(fromSection, 0, toSection, 0, fromSection.length);
+        try {
+            Field iField = ChunkSection.class.getDeclaredField("biomes");
+            iField.setAccessible(true);
+
+            for (int i = 0; i < fromSections.length; i++) {
+                LevelChunkSection fromSection = fromSections[i];
+                LevelChunkSection toSection = toSections[i];
+
+                DataPaletteBlock<Holder<BiomeBase>> donorBiomes = (DataPaletteBlock<Holder<BiomeBase>>) iField.get(fromSection);
+                iField.set(toSection, donorBiomes);
+            }
+
+            iField.setAccessible(false); // Set accessible to false after looping
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to copy biomes", e);
+        }
+
+        int minHeight = world.getMinHeight();
+        int maxHeight = world.getMaxHeight();
+
+        for(int x = 0;x<16;x++){
+            for(int z = 0;z<16;z++){
+                for(int y = minHeight;y<maxHeight;y++){
+                    CraftBlock newBlock = ((CraftBlock) recipient.getBlock(x, y, z));
+                    newBlock.setBlockData(donor.getBlock(x,y,z).getBlockData(),false);
+                }
+            }
+        }
     }
 
     public void loadMass() {
